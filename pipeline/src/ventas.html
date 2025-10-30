@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Ventas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: #2a5298;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 1.5rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logout-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .logout-button:hover {
+            background-color: #c82333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .ventas-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .form-card, .table-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .form-card h2, .table-card h2 {
+            color: #2a5298;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 1rem;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .submit-button:hover {
+            background-color: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2a5298;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        .total-row td {
+            padding: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .ventas-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Sistema de Ventas</h1>
+        <div class="user-info">
+            <span id="userDisplay"></span>
+            <button class="logout-button" id="logoutButton">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="ventas-grid">
+            <div class="form-card">
+                <h2>Nueva Venta</h2>
+                <form id="ventaForm">
+                    <div class="form-group">
+                        <label for="producto">Producto</label>
+                        <input type="text" id="producto" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cantidad">Cantidad</label>
+                        <input type="number" id="cantidad" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="precio">Precio Unitario ($)</label>
+                        <input type="number" id="precio" min="0" step="0.01" required>
+                    </div>
+                    <button type="submit" class="submit-button">Registrar Venta</button>
+                </form>
+            </div>
+
+            <div class="table-card">
+                <h2>Registro de Ventas</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ventasTableBody">
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3">Total General:</td>
+                            <td id="totalGeneral">$0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        // Mostrar nombre de usuario
+        document.getElementById('userDisplay').textContent = 
+            `Usuario: ${sessionStorage.getItem('username')}`;
+
+        // Variables globales
+        let ventas = [];
+        let totalGeneral = 0;
+
+        // Manejador del formulario de ventas
+        document.getElementById('ventaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const venta = {
+                producto: document.getElementById('producto').value,
+                cantidad: parseFloat(document.getElementById('cantidad').value),
+                precioUnitario: parseFloat(document.getElementById('precio').value),
+                total: 0
+            };
+
+            venta.total = venta.cantidad * venta.precioUnitario;
+            ventas.push(venta);
+            totalGeneral += venta.total;
+
+            actualizarTablaVentas();
+            this.reset();
+        });
+
+        // Función para actualizar la tabla de ventas
+        function actualizarTablaVentas() {
+            const tbody = document.getElementById('ventasTableBody');
+            tbody.innerHTML = '';
+
+            ventas.forEach(venta => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${venta.producto}</td>
+                    <td>${venta.cantidad}</td>
+                    <td>$${venta.precioUnitario.toFixed(2)}</td>
+                    <td>$${venta.total.toFixed(2)}</td>
+                `;
+            });
+
+            document.getElementById('totalGeneral').textContent = 
+                `$${totalGeneral.toFixed(2)}`;
+        }
+
+        // Manejador del botón de logout
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>
